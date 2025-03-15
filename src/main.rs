@@ -5,6 +5,8 @@ use crate::config::ConfigFile;
 
 mod util;
 use crate::util::get_page_size;
+#[cfg(feature = "gui")]
+use crate::util::{error_dialog, warn_dialog};
 
 use std::env;
 use std::ffi::{OsStr, OsString};
@@ -16,6 +18,13 @@ use std::process::{exit, Command};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
+
+fn abort(msg: &str) {
+    error!("{}", msg);
+    #[cfg(feature = "gui")]
+    error_dialog(msg);
+    exit(1);
+}
 
 fn main() {
     // Parse config
@@ -36,8 +45,7 @@ fn main() {
     let args: Vec<OsString> = env::args_os().skip(1).collect();
     trace!("Args:\n{:#?}", args);
     if args.is_empty() {
-        error!("No arguments passed, re-run with --help to learn more.");
-        exit(1)
+        abort("No arguments passed, re-run with --help to learn more.")
     } else {
         match args[0].to_str().unwrap() {
             "--help" => {
@@ -82,6 +90,11 @@ fn main() {
             "Will attempt to install missing requirements for {}",
             interpreter_name
         );
+        #[cfg(feature = "gui")]
+        warn_dialog(&format!(
+            "To run this program, {} needs to be installed.",
+            interpreter_name
+        ));
 
         let mut dnf_command;
         if stdin().is_terminal() {
